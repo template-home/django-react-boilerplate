@@ -3,6 +3,7 @@
 import os
 
 from decouple import config  # noqa
+from dj_database_url import parse as db_url  # noqa
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,8 +15,6 @@ def base_dir_join(*args):
 
 SITE_ID = 1
 
-SECURE_HSTS_PRELOAD = True
-
 DEBUG = True
 
 ADMINS = (("Admin", "foo@example.com"),)
@@ -24,8 +23,11 @@ AUTH_USER_MODEL = "users.User"
 
 ALLOWED_HOSTS = []
 
+DATABASES = {
+    "default": config("DATABASE_URL", cast=db_url),
+}
+
 INSTALLED_APPS = [
-    "exampleapp.apps.ExampleappConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -35,11 +37,13 @@ INSTALLED_APPS = [
     "django_js_reverse",
     "webpack_loader",
     "import_export",
+    "rest_framework",
     "common",
     "users",
 ]
 
 MIDDLEWARE = [
+    "debreach.middleware.RandomCommentMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -56,7 +60,6 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [base_dir_join("templates")],
-        "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.debug",
@@ -65,6 +68,15 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "common.context_processors.sentry_dsn",
                 "common.context_processors.commit_sha",
+            ],
+            "loaders": [
+                (
+                    "django.template.loaders.cached.Loader",
+                    [
+                        "django.template.loaders.filesystem.Loader",
+                        "django.template.loaders.app_directories.Loader",
+                    ],
+                ),
             ],
         },
     },
@@ -78,6 +90,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",},
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
 
 LANGUAGE_CODE = "en-us"
 
@@ -111,3 +134,12 @@ CELERY_TIMEZONE = TIME_ZONE
 # Sentry
 SENTRY_DSN = config("SENTRY_DSN", default="")
 COMMIT_SHA = config("HEROKU_SLUG_COMMIT", default="")
+
+# Fix for Safari 12 compatibility issues, please check:
+# https://github.com/vintasoftware/safari-samesite-cookie-issue
+CSRF_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE = None
+
+# Default primary key field type
+# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

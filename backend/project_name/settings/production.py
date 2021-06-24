@@ -1,6 +1,5 @@
 import sentry_sdk
 from decouple import Csv, config
-from dj_database_url import parse as db_url
 from sentry_sdk.integrations.django import DjangoIntegration
 
 from .base import *  # noqa
@@ -10,9 +9,6 @@ DEBUG = False
 
 SECRET_KEY = config("SECRET_KEY")
 
-DATABASES = {
-    "default": config("DATABASE_URL", cast=db_url),
-}
 DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", cast=Csv())
@@ -32,11 +28,12 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
 # Security
+SECURE_HSTS_PRELOAD = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-SECURE_HSTS_SECONDS = 3600
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=3600, cast=int)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -51,12 +48,11 @@ CELERY_BROKER_URL = config("REDIS_URL")
 CELERY_RESULT_BACKEND = config("REDIS_URL")
 CELERY_SEND_TASK_ERROR_EMAILS = True
 
+# Redbeat https://redbeat.readthedocs.io/en/latest/config.html#redbeat-redis-url
+redbeat_redis_url = config("REDBEAT_REDIS_URL", default="")
+
 # Whitenoise
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-MIDDLEWARE.insert(  # insert WhiteNoiseMiddleware right after SecurityMiddleware
-    MIDDLEWARE.index("django.middleware.security.SecurityMiddleware") + 1,
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-)
 
 # django-log-request-id
 MIDDLEWARE.insert(  # insert RequestIDMiddleware on the top

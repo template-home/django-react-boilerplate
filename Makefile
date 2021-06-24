@@ -1,3 +1,4 @@
+SHELL := /bin/bash # Use bash syntax
 ARG := $(word 2, $(MAKECMDGOALS) )
 
 clean:
@@ -7,14 +8,8 @@ clean:
 test:
 	python backend/manage.py test backend/ $(ARG) --parallel --keepdb
 
-dockertest:
-	docker-compose run backend python manage.py test $(ARG) --parallel --keepdb
-
-testreset:
+test_reset:
 	python backend/manage.py test backend/ $(ARG) --parallel
-
-dockertestreset:
-	docker-compose run backend python manage.py test $(ARG) --parallel
 
 backend_format:
 	black backend
@@ -27,20 +22,6 @@ upgrade: ## update the *requirements.txt files with the latest packages satisfyi
 	sed 's/==/>=/g' requirements.txt > requirements.tmp
 	mv requirements.tmp requirements.txt
 
-clean_examples:
-	# Remove the tables specific for the example app
-	python backend/manage.py migrate exampleapp zero
-	# Removing backend example app files
-	rm -rf ./backend/exampleapp
-	# Removing frontend example app files
-	rm -rf ./frontend/js/app/example-app
-	# Removing example templates files
-	rm -rf ./backend/templates/exampleapp
-	# Remove exampleapp from settings
-	sed -i '/exampleapp/d' ./backend/{{project_name}}/settings/base.py
-	# Remove exampleapp from urls
-	sed -i '/exampleapp/d' ./backend/{{project_name}}/urls.py
-
 compile_install_requirements:
 	@echo 'Installing pip-tools...'
 	export PIP_REQUIRE_VIRTUALENV=true; \
@@ -50,3 +31,34 @@ compile_install_requirements:
 	pip-compile dev-requirements.in > dev-requirements.txt
 	@echo 'Installing requirements...'
 	pip install -r requirements.txt && pip install -r dev-requirements.txt
+
+# Commands for Docker version
+docker_setup:
+	docker volume create {{project_name}}_dbdata
+	docker-compose build --no-cache backend
+	docker-compose run frontend npm install
+
+docker_test:
+	docker-compose run backend python manage.py test $(ARG) --parallel --keepdb
+
+docker_test_reset:
+	docker-compose run backend python manage.py test $(ARG) --parallel
+
+docker_up:
+	docker-compose up -d
+
+docker_update_dependencies:
+	docker-compose down
+	docker-compose up -d --build
+
+docker_down:
+	docker-compose down
+
+docker_logs:
+	docker-compose logs -f $(ARG)
+
+docker_makemigrations:
+	docker-compose run --rm backend python manage.py makemigrations
+
+docker_migrate:
+	docker-compose run --rm backend python manage.py migrate

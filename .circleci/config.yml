@@ -38,19 +38,10 @@ jobs:
           command: npm update --save-dev
           path: testproject
       - run:
-          name: "hotfix for #133"
-          command: |
-            sed -i 's/"bootstrap-loader": "^2.1.0"/"bootstrap-loader": "2.1.0"/g' package.json
-          path: testproject
-      - run:
           command: npm install --no-optional
           path: testproject
       - run:
           command: npm dedupe
-          path: testproject
-      # npm ls will error on dependencies errors
-      - run:
-          command: npm ls
           path: testproject
       - save_cache:
           key: dependency-cache-{{ .Branch }}-{{ .Environment.CIRCLE_SHA1 }}
@@ -95,18 +86,26 @@ jobs:
       - run:
           command: python manage.py makemigrations
           path: testproject/backend
+          environment:
+            DATABASE_URL: 'sqlite:///'
       - run:
           command: python manage.py migrate
           path: testproject/backend
+          environment:
+            DATABASE_URL: 'sqlite:///'
       - run:
           command: python manage.py test
           path: testproject/backend
+          environment:
+            DATABASE_URL: 'sqlite:///'
       - run:
           command: prospector
           path: testproject/backend
       - run:
-          command: python manage.py has_missing_migrations
+          command: python manage.py makemigrations --check --dry-run
           path: testproject/backend
+          environment:
+            DATABASE_URL: 'sqlite:///'
       - run:
           command: python manage.py check --deploy --fail-level WARNING
           path: testproject/backend

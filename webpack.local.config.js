@@ -1,6 +1,7 @@
 const autoprefixer = require('autoprefixer');
 const webpack = require('webpack');
 const BundleTracker = require('webpack-bundle-tracker');
+const CircularDependencyPlugin = require('circular-dependency-plugin');
 const path = require('path');
 
 const baseConfig = require('./webpack.base.config');
@@ -55,23 +56,13 @@ baseConfig.plugins = [
       postcss: [autoprefixer],
     },
   }),
-  new webpack.ProvidePlugin({
-    $: 'jquery',
-    jQuery: 'jquery',
-    Tether: 'tether',
-    'window.Tether': 'tether',
-    Popper: ['popper.js', 'default'],
-    Alert: 'exports-loader?Alert!bootstrap/js/dist/alert',
-    Button: 'exports-loader?Button!bootstrap/js/dist/button',
-    Carousel: 'exports-loader?Carousel!bootstrap/js/dist/carousel',
-    Collapse: 'exports-loader?Collapse!bootstrap/js/dist/collapse',
-    Dropdown: 'exports-loader?Dropdown!bootstrap/js/dist/dropdown',
-    Modal: 'exports-loader?Modal!bootstrap/js/dist/modal',
-    Popover: 'exports-loader?Popover!bootstrap/js/dist/popover',
-    Scrollspy: 'exports-loader?Scrollspy!bootstrap/js/dist/scrollspy',
-    Tab: 'exports-loader?Tab!bootstrap/js/dist/tab',
-    Tooltip: 'exports-loader?Tooltip!bootstrap/js/dist/tooltip',
-    Util: 'exports-loader?Util!bootstrap/js/dist/util',
+  new CircularDependencyPlugin({
+    // exclude detection of files based on a RegExp
+    exclude: /a\.js|node_modules/,
+    // add errors to webpack instead of warnings
+    failOnError: true,
+    // set the current working directory for displaying module paths
+    cwd: process.cwd(),
   }),
 ];
 

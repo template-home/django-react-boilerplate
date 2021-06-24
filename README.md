@@ -1,12 +1,13 @@
-[![License: MIT](https://img.shields.io/github/license/vintasoftware/django-react-boilerplate.svg)](LICENSE.txt)
-
 # Django React Boilerplate
+
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](code_of_conduct.md)
+[![License: MIT](https://img.shields.io/github/license/vintasoftware/django-react-boilerplate.svg)](LICENSE.txt)
 
 ## About
 A [Django](https://www.djangoproject.com/) project boilerplate/template with lots of state of the art libraries and tools like:
 - [React](https://facebook.github.io/react/), for building interactive UIs
 - [django-js-reverse](https://github.com/ierror/django-js-reverse), for generating URLs on JS
-- [Bootstrap 4](https://v4-alpha.getbootstrap.com/), for responsive styling
+- [React Bootstrap](https://https://react-bootstrap.github.io/), for responsive styling
 - [Webpack](https://webpack.js.org/), for bundling static assets
 - [Celery](http://www.celeryproject.org/), for background worker tasks
 - [WhiteNoise](http://whitenoise.evans.io/en/stable/) with [brotlipy](https://github.com/python-hyper/brotlipy), for efficient static files serving
@@ -36,11 +37,6 @@ This is a good starting point for modern Python/JavaScript web projects.
     ```
 In the next steps, always remember to replace theprojectname with your project's name
 - [ ] Above: don't forget the `--extension` and `--name` params!
-- [ ] Navigate to the project's directory through your command line.
-- [ ] Create a new virtualenv with either [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/) or only virtualenv: `mkvirtualenv {{project_name}}` or `python -m venv {{project_name}}-venv`
-    > If you're using Python's virtualenv (the latter option), make sure to create the environment with the suggested name, otherwise it will be added to version control.
-- [ ] Make sure the virtualenv is activated `workon {{project_name}}` or `source {{project_name}}-venv/bin/activate`
-- [ ] Compile the requirements before installation and install them:  `make compile_install_requirements`
 - [ ] Change the first line of README to the name of the project
 - [ ] Add an email address to the `ADMINS` settings variable in `{{project_name}}/backend/{{project_name}}/settings/base.py`
 - [ ] Change the `SERVER_EMAIL` to the email address used to send e-mails in `{{project_name}}/backend/{{project_name}}/settings/production.py`
@@ -49,48 +45,81 @@ In the next steps, always remember to replace theprojectname with your project's
 After completing ALL of the above, remove this `Project bootstrap` section from the project README. Then follow `Running` below.
 
 ## Running
+### Tools
+- Setup [editorconfig](http://editorconfig.org/), [prospector](https://prospector.landscape.io/en/master/) and [ESLint](http://eslint.org/) in the text editor you will use to develop.
+
 ### Setup
 - Inside the `backend` folder, do the following:
-- Create a copy of ``{{project_name}}/settings/local.py.example``:  
-  `cp {{project_name}}/settings/local.py.example {{project_name}}/settings/local.py`
-- Create a copy of ``.env.example``:
+  - Create a copy of `{{project_name}}/settings/local.py.example`:  
+  `cp {{project_name}}/settings/local.py.example {{project_name}}/settings/local.py`
+  - Create a copy of `.env.example`:
   `cp .env.example .env`
 
-#### If you are using plain python:
+### If you are using Docker:
+- Open the `/backend/.env` file on a text editor and uncomment the line `DATABASE_URL=postgres://{{project_name}}:password@db:5432/{{project_name}}`
+- Open a new command line window and go to the project's directory
+- Run the initial setup:
+  `make docker_setup`
+- Create the migrations for `users` app:  
+  `make docker_makemigrations`
+- Run the migrations:
+  `make docker_migrate`
+- Run the project:
+  `make docker_up`
+- Access `http://localhost:8000` on your browser and the project should be running there
+  - When you run `make docker_up`, some containers are spinned up (frontend, backend, database, etc) and each one will be running on a different port
+  - The container with the React app uses port 3000. However, if you try accessing it on your browser, the app won't appear there and you'll probably see a blank page with the "Cannot GET /" error
+  - This happens because the container responsible for displaying the whole application is the Django app one (running on port 8000). The frontend container is responsible for providing a bundle with its assets for [django-webpack-loader](https://github.com/django-webpack/django-webpack-loader) to consume and render them on a Django template
+- To access the logs for each service, run:
+  `make docker_logs <service name>` (either `backend`, `frontend`, etc)
+- To stop the project, run:
+  `make docker_down`
+
+#### Adding new dependencies
+- Open a new command line window and go to the project's directory
+- Update the dependencies management files by performing any number of the following steps:
+  - To add a new **frontend** dependency, run `npm install <package name> --save`
+    > The above command will update your `package.json`, but won't make the change effective inside the container yet
+  - To add a new **backend** dependency, update `requirements.in` or `dev-requirements.in` with the newest requirements
+- After updating the desired file(s), run `make docker_update_dependencies` to update the containers with the new dependencies
+  > The above command will stop and re-build the containers in order to make the new dependencies effective
+
+### If you are not using Docker:
+#### Setup and run the frontend app
+- Open a new command line window and go to the project's directory
+- `npm install`
+- `npm run start`
+  - This is used to serve the frontend assets to be consumed by [django-webpack-loader](https://github.com/django-webpack/django-webpack-loader) and not to run the React application as usual, so don't worry if you try to check what's running on port 3000 and see an error on your browser
+
+#### Setup the backend app
+- Open the `/backend/.env` file on a text editor and do one of the following:
+  - If you wish to use SQLite locally, uncomment the line `DATABASE_URL=sqlite:///backend/db.sqlite3`
+  - If you wish to use PostgreSQL locally, uncomment and edit the line `DATABASE_URL=postgres://{{project_name}}:password@db:5432/{{project_name}}` in order to make it correctly point to your database URL
+    - The url format is the following: `postgres://USER:PASSWORD@HOST:PORT/NAME`
+  - If you wish to use another database engine locally, add a new `DATABASE_URL` setting for the database you wish to use
+    - Please refer to [dj-database-url](https://github.com/jacobian/dj-database-url#url-schema) on how to configure `DATABASE_URL` for commonly used engines
+- Open a new command line window and go to the project's directory
+- Create a new virtualenv with either [virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/) or only virtualenv: `mkvirtualenv {{project_name}}` or `python -m venv {{project_name}}-venv`
+  > If you're using Python's virtualenv (the latter option), make sure to create the environment with the suggested name, otherwise it will be added to version control.
+- Make sure the virtualenv is activated `workon {{project_name}}` or `source {{project_name}}-venv/bin/activate`
+- Run `make compile_install_requirements` to install the requirements
+  > Please make sure you have already setup PostgreSQL on your environment before installing the requirements
+
+  > In case you wish to use a Conda virtual environment, please remove the line `export PIP_REQUIRE_VIRTUALENV=true; \` from `Makefile`
+
+#### Run the backend app
+- With the virtualenv enabled, go to the `backend` directory
 - Create the migrations for `users` app: 
   `python manage.py makemigrations`
 - Run the migrations:
   `python manage.py migrate`
+- Run the project:
+  `python manage.py runserver`
+- Open a browser and go to `http://localhost:8000` to see the project running
 
-#### If you are using Docker:
-- Create the migrations for `users` app:  
-  `docker-compose run --rm backend python manage.py makemigrations`
-- Run the migrations:
-  `docker-compose run --rm backend python manage.py migrate`
-
-### Tools
-- Setup [editorconfig](http://editorconfig.org/), [prospector](https://prospector.landscape.io/en/master/) and [ESLint](http://eslint.org/) in the text editor you will use to develop.
-
-### Running the project (without docker)
-- Open a command line window and go to the project's directory.
-- `pip-compile requirements.in > requirements.txt && pip-compile dev-requirements.in > dev-requirements.txt`
-- `pip install -r requirements.txt && pip install -r dev-requirements.txt`
-- `npm install`
-- `npm run start`
-- Open another command line window.
-- `workon theprojectname` or `source theprojectname/bin/activate` depending on if you are using virtualenvwrapper or just virtualenv.
-- Go to the `backend` directory.
-- `python manage.py runserver`
-
-
-### Running the project (with docker)
-- Open a command line window and go to the project's directory.
-- `docker-compose up -d `
-To access the logs for each service run `docker-compose logs -f service_name` (either backend, frontend, etc)
-
-#### Celery
+#### Setup Celery
 - Open a command line window and go to the project's directory
-- `workon theprojectname` or `source theprojectname/bin/activate` depending on if you are using virtualenvwrapper or just virtualenv.
+- `workon {{project_name}}` or `source {{project_name}}-venv/bin/activate` depending on if you are using virtualenvwrapper or just virtualenv.
 - `python manage.py celery`
 
 #### Mailhog
@@ -112,15 +141,11 @@ Add the libname to either `requirements.in` or `dev-requirements.in`, then eithe
 `pip-compile requirements.in > requirements.txt` or `make upgrade`
 `pip install -r requirements.txt`
 
-### Cleaning example code
-Before you start creating your own apps remove the example:
-- Run the command `make clean_examples` in order to clean up the example apps from the front and backend.
-- Deregister the example app by removing `'exampleapp.apps.ExampleappConfig'` from ``backend/{{project_name}}/settings/base.py``.
-- Adjust ``backend/{{project_name}}/urls.py`` to point to your newly created Django app and remove the path configuration that redirects to the deleted example app.
-
 ## Deployment 
 ### Setup
 This project comes with an `app.json` file, which can be used to create an app on Heroku from a GitHub repository.
+
+Before deploying, please make sure you've generated an up-to-date `requirements.txt` file containing the Python dependencies. This is necessary even if you've used Docker for local runs. Do so by following [these instructions](#setup-the-backend-app).
 
 After setting up the project, you can init a repository and push it on GitHub. If your repository is public, you can use the following button:
 
@@ -167,6 +192,45 @@ Some settings defaults were decided based on Vinta's experiences. Here's the rat
 
 ### `CELERY_ACKS_LATE = True`
 We believe Celery tasks should be idempotent. So for us it's safe to set `CELERY_ACKS_LATE = True` to ensure tasks will be re-queued after a worker failure. Check Celery docs on ["Should I use retry or acks_late?"](https://docs.celeryproject.org/en/latest/faq.html#should-i-use-retry-or-acks-late) for more info.
+
+## Features Catalogue
+
+### Frontend
+- `react` for building interactive UIs
+- `react-dom` for rendering the UI
+- `react-router` for page navigation
+- `webpack` for bundling static assets
+- `webpack-bundle-tracker` for providing the bundled assets to Django
+- Styling
+  - `bootstrap` for providing responsive stylesheets
+  - `react-bootstrap` for providing components built on top of Bootstrap CSS without using plugins
+  - `node-sass` for providing compatibility with SCSS files
+- State management and backend integration
+  - `axios` for performing asynchronous calls
+  - `cookie` for easy integration with Django using the `csrftoken` cookie
+  - `redux` for easy state management across the application
+  - `connected-react-router` for integrating Redux with React Router
+  - `history` for providing browser history to Connected React Router
+  - `react-redux` for integrating React with Redux
+  - `redux-devtools-extension` for inspecting and debugging Redux via browser
+  - `redux-thunk` for interacting with the Redux store through asynchronous logic
+- Utilities
+  - `lodash` for general utility functions
+  - `classnames` for easy working with complex CSS class names on components
+  - `prop-types` for improving QoL while developing providing basic type-checking for React props
+  - `react-hot-loader` for improving QoL while developing through automatic browser refreshing
+
+### Backend
+- `django` for building backend logic using Python
+- `djangorestframework` for building a REST API on top of Django
+- `django-webpack-loader` for rendering the bundled frontend assets
+- `django-js-reverse` for easy handling of Django URLs on JS
+- `psycopg2` for using PostgreSQL database
+- `sentry-sdk` for error monitoring
+- `python-decouple` for reading environment variables on settings files
+- `celery` for background worker tasks
+- `django-debreach` for additional protection against BREACH attack
+- `whitenoise` and `brotlipy` for serving static assets
 
 ## Contributing
 
